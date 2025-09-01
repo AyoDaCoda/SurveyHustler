@@ -1,3 +1,5 @@
+import os
+from dotenv import load_dotenv
 import requests
 from telegram import (
     Update,
@@ -16,7 +18,14 @@ from telegram.ext import (
 from telegram.helpers import escape_markdown
 from datetime import datetime, timezone
 
-SERVER_URL = "https://2dd3d5aa0786.ngrok-free.app"
+# Load environment variables from the .env file
+load_dotenv(os.path.join(os.path.abspath(os.path.dirname(__file__)), 'surveyhustler.env'))
+
+# Now, retrieve your secrets
+SERVER_URL = os.getenv("SERVER_URL")
+if not SERVER_URL:
+    raise ValueError("SERVER_URL not found in environment variables.")
+    
 users_cache = {}
 user_survey_sessions = {}
 user_ai_sessions = {}
@@ -941,3 +950,4 @@ def main():
 if __name__ == "__main__":
 
     main()
+
