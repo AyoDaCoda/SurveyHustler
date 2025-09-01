@@ -41,16 +41,23 @@ load_dotenv(os.path.join(basedir, 'surveyhustler.env'), override=True, verbose=T
 # print(f"DEBUG: FLASK_SECRET_KEY after load_dotenv = {os.getenv('FLASK_SECRET_KEY')}") # This is the critical one!
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
-    'DATABASE_URL',
-    'postgresql://surveyuser:surveysecret@localhost:5432/surveyhustler'
-)
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY')
 
 GSPREAD_KEY_PATH = os.path.join(basedir, 'surveyhustler-api-8baa5c0c1239.json')
 
+GOOGLE_CREDENTIALS_PATH = os.getenv('GOOGLE_CREDENTIALS_PATH')
+if not GOOGLE_CREDENTIALS_PATH or not os.path.exists(GOOGLE_CREDENTIALS_PATH):
+    raise ValueError("Google credentials file path not found or file does not exist.")
+
 gc = None
+try:
+    gc = gspread.service_account(filename=GOOGLE_CREDENTIALS_PATH)
+    print("INFO: gspread client initialized successfully.")
+except Exception as e:
+    print(f"CRITICAL ERROR: Failed to initialize gspread client: {e}")
+
 try:
     # Use os.getenv to retrieve the entire JSON string from your .env file
     creds_json = os.getenv('GOOGLE_SERVICE_ACCOUNT_CREDENTIALS')
@@ -77,8 +84,8 @@ otp_storage = {}
 # Existing REQUIRED_EDITOR_EMAIL
 REQUIRED_EDITOR_EMAIL = "ayomideabod@gmail.com"
 
-SENDER_EMAIL = os.environ.get("EMAIL_USER", "ayomideabod@gmail.com")
-SENDER_PASSWORD = os.environ.get("EMAIL_PASS", "scfhmqeuwmeoadge")
+SENDER_EMAIL = os.environ.get("EMAIL_USER")
+SENDER_PASSWORD = os.environ.get("EMAIL_PASS")
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587 # 587 for TLS
 
@@ -241,7 +248,7 @@ def check_editor_access(form_link):
 
         SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly']
         creds = service_account.Credentials.from_service_account_file(
-            'surveyhustler-api-8baa5c0c1239.json', scopes=SCOPES
+            GOOGLE_CREDENTIALS_PATH, scopes=SCOPES
         )
         drive = build('drive', 'v3', credentials=creds)
 
@@ -1814,3 +1821,4 @@ def get_levels(filter_by_type, option_id):
 # --------------------- START ---------------------
 if __name__ == '__main__':
     app.run(debug=True)
+
