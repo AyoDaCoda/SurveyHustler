@@ -26,3 +26,5 @@ Thumbs.db
 # Node (if any frontend assets)
 node_modules/
 dist/
+
+surveyhustler.env
