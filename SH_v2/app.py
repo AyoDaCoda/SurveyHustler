@@ -45,16 +45,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY')
 
-GSPREAD_KEY_PATH = os.path.join(basedir, 'surveyhustler-api-8baa5c0c1239.json')
-
-
 gc = None
-try:
-    gc = gspread.service_account(filename=GOOGLE_CREDENTIALS_PATH)
-    print("INFO: gspread client initialized successfully.")
-except Exception as e:
-    print(f"CRITICAL ERROR: Failed to initialize gspread client: {e}")
-
 try:
     # Use os.getenv to retrieve the entire JSON string from your .env file
     creds_json = os.getenv('GOOGLE_SERVICE_ACCOUNT_CREDENTIALS')
