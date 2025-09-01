@@ -47,9 +47,6 @@ app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY')
 
 GSPREAD_KEY_PATH = os.path.join(basedir, 'surveyhustler-api-8baa5c0c1239.json')
 
-GOOGLE_CREDENTIALS_PATH = os.getenv('GOOGLE_CREDENTIALS_PATH')
-if not GOOGLE_CREDENTIALS_PATH or not os.path.exists(GOOGLE_CREDENTIALS_PATH):
-    raise ValueError("Google credentials file path not found or file does not exist.")
 
 gc = None
 try:
@@ -247,8 +244,8 @@ def check_editor_access(form_link):
         print("[check_editor_access] Checking access for:", form_link)
 
         SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly']
-        creds = service_account.Credentials.from_service_account_file(
-            GOOGLE_CREDENTIALS_PATH, scopes=SCOPES
+        creds = service_account.Credentials.from_service_account_info(
+            credentials_dict, scopes=SCOPES
         )
         drive = build('drive', 'v3', credentials=creds)
 
