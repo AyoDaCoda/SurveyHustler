@@ -918,7 +918,11 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # bot.py
 def main():
-    app = ApplicationBuilder().token("8014493565:AAGo_N64xG2Sz2hxNkXy0Ky4PhNdecwssNk").build()
+    token = os.getenv("TELEGRAM_BOT_TOKEN")
+    if not token:
+        raise ValueError("TELEGRAM_BOT_TOKEN not found in environment variables.")
+
+    app = ApplicationBuilder().token(token).build()
 
     # Command Handlers should always be at the top to have priority
     app.add_handler(CommandHandler("start", start))
@@ -935,4 +939,5 @@ def main():
 
 
 if __name__ == "__main__":
+
     main()
