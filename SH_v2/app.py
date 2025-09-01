@@ -515,7 +515,7 @@ def index():
 
 @app.route('/register')
 def register():
-    return render_template('register.html', tg_id=request.args.get("tg_id", ""))
+    return render_template('register.html', tg_id=request.args.get("tg_id", ""), server_url=os.getenv("SERVER_URL"))
 
 # New API endpoint to send OTP
 # app.py (Modify or add this route, e.g., before other API routes)
@@ -733,15 +733,15 @@ def api_login():
 #UPLOAD SURVEYS
 @app.route('/upload_survey_login')
 def upload_survey_login():
-    return render_template('upload_login.html', tg_id=request.args.get("tg_id", ""))
+    return render_template('upload_login.html', tg_id=request.args.get("tg_id", ""), server_url=os.getenv("SERVER_URL"))
 
 @app.route('/form_setup')
 def form_setup():
-    return render_template('form_setup.html', tg_id=request.args.get("tg_id", ""))
+    return render_template('form_setup.html', tg_id=request.args.get("tg_id", ""), server_url=os.getenv("SERVER_URL"))
 
 @app.route('/survey_details')
 def survey_details():
-    return render_template('survey_details.html')
+    return render_template('survey_details.html', server_url=os.getenv("SERVER_URL"))
 
 @app.route('/success')
 def success():

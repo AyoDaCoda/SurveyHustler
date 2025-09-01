@@ -1,4 +1,4 @@
-const BACKEND_URL = 'https://2dd3d5aa0786.ngrok-free.app';
+const BACKEND_URL = '{{ server_url }}';
 let academicData = {};
 
 let registrationData = {
