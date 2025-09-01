@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Register - SurveyHustler</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="form-wrapper">
+    <form id="signupForm">
+      <input type="hidden" id="tg_id" value="{{ tg_id }}">
+      <div class="step step-1">
+        <h2>Hey There!</h2>
+        <div id="step1Error" class="error-message"></div>
+        <input placeholder="First name" id="first_name" required>
+        <input placeholder="Last name" id="last_name" required>
+        <input placeholder="School email" id="email" type="email" required>
+        <input placeholder="Telegram number" id="phone" required>
+        <select id="gender" required>
+          <option value="">Gender</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+        </select>
+        <input type="password" id="password" placeholder="Password" required>
+        <input type="password" id="confirm_password" placeholder="Confirm Password" required>
+
+        <button type="button" id="sendOtpBtn" onclick="sendOtp()">Send OTP</button>
+      </div>
+
+      <div class="step step-otp hidden">
+        <h2>Verify your email</h2>
+        <p>An OTP was sent to: <span id="display_email"></span></p>
+
+        <input type="text" id="otp_input" placeholder="Enter 6-digit OTP">
+        <div id="otpMessage" class="info-message"></div>
+        <div id="otpError" class="error-message"></div>
+
+        <p class="otp-resend-wrapper">
+            <span id="resendOtpLink" class="resend-link inactive">Resend in 30s</span>
+        </p>
+        <button type="button" onclick="verifyOtp()">Verify OTP</button>
+      </div>
+
+
+      <div class="step step-2 hidden">
+        <h2>Almost there...</h2>
+        <div id="step2Error" class="error-message"></div>
+        <select id="institution" required>
+          <option value="">Select Institution</option>
+        </select>
+
+        <select id="role" required>
+          <option value="">Select Role</option>
+          <option value="Student">Student</option>
+          <option value="Staff">Staff</option>
+        </select>
+
+        <select id="college" required disabled>
+          <option value="">Select College</option>
+        </select>
+
+        <select id="department" required disabled>
+          <option value="">Select Department</option>
+        </select>
+
+        <select id="course" disabled>
+          <option value="">Select Course (Optional)</option>
+        </select>
+
+        <select id="level" required disabled>
+          <option value="">Select Level</option>
+        </select>
+
+        <button type="button" onclick="submitForm()">Finish</button>
+      </div>
+
+      <div class="step step-3 hidden">
+        <h2>Welcome to SurveyHustler!</h2>
+        <p>You are now registered.</p>
+        <a href="https://t.me/suveyhustler_test_bot" class="btn">Start SurveyHustler bot</a>
+        <p class="mt-3">If the bot link doesn't work, search for <span style="font-weight: bold;">suveyhustler_test_bot</span> on Telegram.</p>
+      </div>
+    </form>
+  </div>
+
+  <script src="/static/script.js"></script>
+</body>
+</html>

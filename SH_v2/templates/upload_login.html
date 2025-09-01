@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Upload Survey</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <style>
+    #loginModal {
+      display: block;
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+    .modal-backdrop.show {
+      opacity: 0.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="modal show" tabindex="-1" id="loginModal">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Login to Upload Survey</h5>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="tg_id" value="{{ tg_id }}">
+          <input type="email" id="email" class="form-control mb-2" placeholder="Email">
+          <input type="password" id="password" class="form-control" placeholder="Password">
+          <div id="loginError" class="text-danger mt-2"></div>
+        </div>
+        <div class="modal-footer">
+          <button id="loginBtn" class="btn btn-primary">Login</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="mainContent" class="container mt-5 d-none">
+    <h3>Welcome, <span id="userName"></span>!</h3>
+    <p>Instructions on how to prepare your form...</p>
+    <!-- Survey input UI to follow -->
+  </div>
+
+  <script>
+    const tg_id = "{{ tg_id }}";
+
+    document.getElementById('loginBtn').addEventListener('click', async () => {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const tg_id = document.getElementById('tg_id').value;
+      // send tg_id along with email and password in the fetch request
+
+
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, tg_id })
+      });
+      const result = await response.json();
+
+      if (result.success) {
+        document.getElementById('userName').textContent = result.name;
+        document.getElementById('loginModal').classList.add('d-none');
+        document.getElementById('mainContent').classList.remove('d-none');
+        window.location.href = `/form_setup?tg_id=${tg_id}`;
+      } else {
+        document.getElementById('loginError').textContent = result.error;
+      }
+    });
+  </script>
+</body>
+</html>

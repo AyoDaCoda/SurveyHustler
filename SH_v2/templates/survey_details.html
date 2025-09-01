@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Survey Details - SurveyHustler</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <style>
+    body { padding: 2rem; }
+    .status { font-weight: bold; margin-top: 1rem; }
+    /* Styles for the filter container and toggle */
+    .filter-options-container {
+        border: 1px solid #ddd;
+        padding: 15px;
+        border-radius: 5px;
+        margin-top: 15px;
+        background-color: #f9f9f9;
+    }
+    .filter-item {
+        border: 1px solid #eee;
+        padding: 10px;
+        margin-bottom: 10px;
+        border-radius: 4px;
+        background-color: #fff;
+        position: relative;
+    }
+    .filter-item .remove-filter {
+        position: absolute;
+        top: 5px;
+        right: 10px;
+        cursor: pointer;
+        font-weight: bold;
+        color: #dc3545; /* Red for delete */
+    }
+    /* Styles for overlays */
+    .payment-overlay, .success-overlay {
+        display: none; /* Hidden by default */
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.7);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+    }
+    .payment-content, .success-content {
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        text-align: center;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .payment-breakdown p {
+        margin-bottom: 5px;
+    }
+    .payment-breakdown strong {
+        font-size: 1.2em;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>📝 Survey Details</h2>
+
+    <div class="mb-3">
+        <label for="surveyName" class="form-label">Survey Name</label>
+        <input type="text" class="form-control" id="surveyName" placeholder="e.g., Final Year Project Survey" required>
+    </div>
+
+    <div class="mb-3">
+        <label for="surveyDescription" class="form-label">Survey Description</label>
+        <textarea class="form-control" id="surveyDescription" rows="3" placeholder="Briefly describe your survey (e.g., This survey is for research on...)" required></textarea>
+    </div>
+
+    <div class="mb-3">
+        <label for="surveyDuration" class="form-label">Estimated Survey Duration (minutes) *fractional amounts permitted e.g. 0.5 for 30 seconds, etc.</label>
+        <input type="number" step="0.1" class="form-control" id="surveyDuration" placeholder="e.g., 1" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="responderLink" class="form-label">Google Form Responder Link</label>
+      <input type="url" class="form-control" id="responderLink" placeholder="https://docs.google.com/forms/d/e/..." required>
+    </div>
+
+    <div class="mb-3">
+        <label for="rewardPerResponse" class="form-label">Reward Per Response (₦)</label>
+        <input type="number" class="form-control" id="rewardPerResponse" placeholder="e.g., 100" min="1" required>
+    </div>
+
+    <div class="mb-3">
+        <label for="desiredResponses" class="form-label">Desired Number of Responses</label>
+        <input type="number" class="form-control" id="desiredResponses" placeholder="e.g., 50" min="1" required>
+    </div>
+
+    <div class="mb-3 form-check form-switch">
+      <input class="form-check-input" type="checkbox" id="applyFilterToggle">
+      <label class="form-check-label" for="applyFilterToggle">Apply Filters for Survey Audience</label>
+    </div>
+
+    <div id="filterContainer" class="filter-options-container" style="display: none;">
+        <h4>Audience Filters</h4>
+        <div id="filtersList">
+            </div>
+        <button type="button" class="btn btn-secondary btn-sm mt-3" onclick="addFilter()">Add Filter</button>
+    </div>
+    <div id="surveyDetailsStatus" class="status mt-4"></div>
+
+    <button class="btn btn-primary mt-3" onclick="submitSurvey()">Submit Survey</button>
+
+  </div>
+
+  <div id="paymentOverlay" class="payment-overlay">
+      <div class="payment-content">
+          <h3>Simulated Payment</h3>
+          <div class="payment-breakdown mb-3">
+              <p>Cost of Survey: ₦<span id="costOfSurvey">0</span></p>
+              <p>Service Fee: ₦<span id="serviceFee">0</span></p>
+              <p><strong>Total Cost: ₦<span id="paymentAmount">0</span></strong></p>
+          </div>
+          <p>This is a simulated payment. In a real scenario, you'd integrate with a payment gateway here.</p>
+          <button class="btn btn-success" onclick="simulatePaymentSuccess()">Simulate Payment Success</button>
+          <button class="btn btn-danger mt-2" onclick="cancelPayment()">Cancel Payment</button>
+      </div>
+  </div>
+
+  <div id="successOverlay" class="success-overlay">
+      <div class="success-content">
+          <h3>🎉 Survey Uploaded Successfully! 🎉</h3>
+          <p>Your survey has been submitted and is now active.</p>
+          <button class="btn btn-primary"><a style="color:white;text-decoration:none;" href="https://t.me/suveyhustler_test_bot">Go back to bot</a></button>
+      </div>
+  </div>
+
+  <script>
+    const BACKEND_URL = 'https://2dd3d5aa0786.ngrok-free.app'; // Ensure this is your current ngrok URL
+    const FILTER_BASE_COST = 50; // N50 per filter
+    const SERVICE_FEE_PERCENTAGE = 0.05; // 5%
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const tg_id = urlParams.get("tg_id");
+    let verifiedSheetLink = sessionStorage.getItem('sheet_link');
+
+    function displayMessage(elementId, message) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.textContent = message;
+            element.style.color = 'green';
+        }
+    }
+
+    function displayError(elementId, message) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.textContent = message;
+            element.style.color = 'red';
+        }
+    }
+
+    if (!verifiedSheetLink) {
+        alert('Sheet link not verified. Please go back to setup form first.');
+        window.location.href = `/form_setup?tg_id=${tg_id}`;
+    }
+
+    const applyFilterToggle = document.getElementById('applyFilterToggle');
+    const filterContainer = document.getElementById('filterContainer');
+
+    applyFilterToggle.addEventListener('change', function() {
+        if (this.checked) {
+            filterContainer.style.display = 'block';
+            if (document.getElementById('filtersList').children.length === 0) {
+                addFilter(); // Automatically add one filter when toggled on, if none exist
+            }
+        } else {
+            filterContainer.style.display = 'none';
+            document.getElementById('filtersList').innerHTML = ''; // Clear existing filters
+        }
+    });
+
+    // Data cache for institutions, colleges, departments, courses
+    let institutionsData = [];
+    let collegesData = {}; // {institutionId: [{id: 1, name: "CST"}, ...]}
+    let departmentsData = {}; // {collegeId: [{id: 1, name: "CS"}, ...]}
+    let coursesData = {}; // {departmentId: [{id: 1, name: "CMP"}, ...]}
+    let levelsCache = {};
+
+    // Fetch institutions on page load or when needed
+    async function fetchInstitutions() {
+        try {
+            const res = await fetch(`${BACKEND_URL}/api/get_institutions`);
+            if (res.ok) {
+                institutionsData = await res.json();
+            } else {
+                console.error('Failed to fetch institutions:', await res.json());
+                displayError('surveyDetailsStatus', 'Failed to load institutions.');
+            }
+        } catch (error) {
+            console.error('Network error fetching institutions:', error);
+            displayError('surveyDetailsStatus', 'Network error fetching institutions.');
+        }
+    }
+
+    // Populate institution dropdowns
+    async function populateInstitutions(selectElement) {
+        if (institutionsData.length === 0) {
+            await fetchInstitutions(); // Fetch if not already loaded
+        }
+        selectElement.innerHTML = '<option value="">Select Institution</option>';
+        institutionsData.forEach(inst => {
+            const option = document.createElement('option');
+            option.value = inst.id;
+            option.textContent = inst.name;
+            selectElement.appendChild(option);
+        });
+    }
+
+    // Function to add a new filter row
+    function addFilter() {
+        const filtersList = document.getElementById('filtersList');
+        const filterIndex = filtersList.children.length; // Unique index for new filter
+
+        const filterItem = document.createElement('div');
+        filterItem.className = 'filter-item mb-3';
+        filterItem.innerHTML = `
+            <span class="remove-filter" onclick="removeFilter(this)">&times;</span>
+            <div class="row g-2">
+                <div class="col-md-6 mb-2">
+                    <label class="form-label mb-0">Institution</label>
+                    <select class="form-select institution-select" id="institutionSelect${filterIndex}" onchange="handleInstitutionChange(this, ${filterIndex})">
+                        <option value="">Select Institution</option>
+                        </select>
+                </div>
+                <div class="col-md-6 mb-2">
+                    <label class="form-label mb-0">Gender</label>
+                    <select class="form-select gender-select" id="genderSelect${filterIndex}">
+                        <option value="">Select Gender</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Both">Both</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-2">
+                    <label class="form-label mb-0">Role</label>
+                    <select class="form-select role-select" id="roleSelect${filterIndex}">
+                        <option value="">Select Role</option>
+                        <option value="Student">Student</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-2">
+                    <label class="form-label mb-0">Filter By</label>
+                    <select class="form-select filter-by-select" id="filterBySelect${filterIndex}" onchange="handleFilterByChange(this, ${filterIndex})">
+                        <option value="">Filter By</option>
+                        <option value="college">College</option>
+                        <option value="department">Department</option>
+                        <option value="course">Course</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-2">
+                    <label class="form-label mb-0">Option</label>
+                    <select class="form-select option-select" id="optionSelect${filterIndex}" onchange="handleOptionChange(this, ${filterIndex})" disabled>
+                        <option value="">Select Option</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-2">
+                    <label class="form-label mb-0">Level</label>
+                    <select class="form-select level-select" id="levelSelect${filterIndex}" disabled>
+                        <option value="">Select Level</option>
+                        </select>
+                </div>
+            </div>
+        `;
+        filtersList.appendChild(filterItem);
+        // Populate institutions for the newly added filter row
+        populateInstitutions(filterItem.querySelector('.institution-select'));
+    }
+
+    // Function to remove a filter row
+    function removeFilter(button) {
+        button.closest('.filter-item').remove();
+        if (document.getElementById('filtersList').children.length === 0 && applyFilterToggle.checked) {
+            applyFilterToggle.checked = false;
+            filterContainer.style.display = 'none';
+        }
+    }
+
+    // Cascading Dropdown Logic
+    async function handleInstitutionChange(selectElement, filterIndex) {
+        const institutionId = selectElement.value;
+        const filterBySelect = document.getElementById(`filterBySelect${filterIndex}`);
+        const optionSelect = document.getElementById(`optionSelect${filterIndex}`);
+        const levelSelect = document.getElementById(`levelSelect${filterIndex}`);
+
+        // Reset and disable dependent dropdowns
+        filterBySelect.value = '';
+        optionSelect.innerHTML = '<option value="">Select Option</option>';
+        optionSelect.disabled = true;
+        levelSelect.value = '';
+        levelSelect.disabled = true;
+
+        if (institutionId) {
+            // Fetch colleges for caching
+            if (!collegesData[institutionId]) {
+                try {
+                    const res = await fetch(`${BACKEND_URL}/api/get_colleges/${institutionId}`);
+                    if (res.ok) {
+                        collegesData[institutionId] = await res.json();
+                    } else {
+                        console.error('Failed to fetch colleges:', await res.json());
+                        displayError('surveyDetailsStatus', 'Failed to load colleges for institution.');
+                    }
+                } catch (error) {
+                    console.error('Network error fetching colleges:', error);
+                    displayError('surveyDetailsStatus', 'Network error fetching colleges.');
+                }
+            }
+        }
+    }
+
+    async function handleFilterByChange(selectElement, filterIndex) {
+        const filterBy = selectElement.value;
+        const institutionSelect = document.getElementById(`institutionSelect${filterIndex}`);
+        const institutionId = institutionSelect.value;
+        const optionSelect = document.getElementById(`optionSelect${filterIndex}`);
+        const levelSelect = document.getElementById(`levelSelect${filterIndex}`);
+
+        // Reset option and level dropdowns
+        optionSelect.innerHTML = '<option value="">Select Option</option>';
+        optionSelect.disabled = true;
+        levelSelect.value = '';
+        levelSelect.disabled = true;
+
+        if (!filterBy || !institutionId) {
+            return;
+        }
+
+        let options = [];
+        if (filterBy === 'college') {
+            options = collegesData[institutionId] || []; // Use cached data
+        } else if (filterBy === 'department') {
+            // Need to first get colleges, then departments for selected college
+            // This assumes filter items don't have a separate college dropdown for department filter
+            // It will fetch departments for ALL colleges under the institution and then filter.
+            // A more robust UI would have a college dropdown appear first if department is selected.
+            // For simplicity, we'll fetch all departments for the institution's colleges if needed.
+            if (!collegesData[institutionId]) await handleInstitutionChange(institutionSelect, filterIndex); // Ensure colleges are fetched
+
+            // Fetch departments for all colleges under this institution and cache them
+            for (const college of (collegesData[institutionId] || [])) {
+                if (!departmentsData[college.id]) {
+                    try {
+                        const res = await fetch(`${BACKEND_URL}/api/get_departments/${college.id}`);
+                        if (res.ok) {
+                            departmentsData[college.id] = await res.json();
+                        } else {
+                            console.error(`Failed to fetch departments for college ${college.id}:`, await res.json());
+                        }
+                    } catch (error) {
+                        console.error(`Network error fetching departments for college ${college.id}:`, error);
+                    }
+                }
+                options = options.concat(departmentsData[college.id] || []);
+            }
+
+        } else if (filterBy === 'course') {
+            // Similar logic for courses: fetch through departments
+            if (!collegesData[institutionId]) await handleInstitutionChange(institutionSelect, filterIndex); // Ensure colleges
+            for (const college of (collegesData[institutionId] || [])) {
+                if (!departmentsData[college.id]) {
+                    try { // Ensure departments are fetched
+                        const res = await fetch(`${BACKEND_URL}/api/get_departments/${college.id}`);
+                        if (res.ok) { departmentsData[college.id] = await res.json(); }
+                    } catch (error) { console.error(`Network error fetching departments for college ${college.id}:`, error); }
+                }
+                for (const dept of (departmentsData[college.id] || [])) {
+                     if (!coursesData[dept.id]) {
+                        try { // Ensure courses are fetched
+                            const res = await fetch(`${BACKEND_URL}/api/get_courses/${dept.id}`);
+                            if (res.ok) { coursesData[dept.id] = await res.json(); }
+                        } catch (error) { console.error(`Network error fetching courses for department ${dept.id}:`, error); }
+                    }
+                    options = options.concat(coursesData[dept.id] || []);
+                }
+            }
+        }
+
+        // Sort options alphabetically by name
+        options.sort((a, b) => a.name.localeCompare(b.name));
+
+        optionSelect.innerHTML = '<option value="">Select Option</option>';
+        options.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt.id;
+            option.textContent = opt.name;
+            optionSelect.appendChild(option);
+        });
+        optionSelect.disabled = false; // Enable option select
+    }
+
+    async function handleOptionChange(selectElement, filterIndex) {
+        const optionId = selectElement.value;
+        const filterBySelect = document.getElementById(`filterBySelect${filterIndex}`);
+        const filterType = filterBySelect.value;
+        const levelSelect = document.getElementById(`levelSelect${filterIndex}`);
+
+        levelSelect.innerHTML = '<option value="">Select Level</option>'; // Clear existing options
+        levelSelect.disabled = true; // Disable until levels are loaded
+
+        if (!optionId || !filterType) {
+            return;
+        }
+
+        const cacheKey = `${filterType}_${optionId}`;
+        let levels = [];
+
+        if (levelsCache[cacheKey]) {
+            levels = levelsCache[cacheKey]; // Use cached data
+        } else {
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/get_levels/${filterType}/${optionId}`);
+                if (res.ok) {
+                    levels = await res.json();
+                    levelsCache[cacheKey] = levels; // Cache the fetched data
+                } else {
+                    console.error('Failed to fetch levels:', await res.json());
+                    displayError('surveyDetailsStatus', 'Failed to load levels for selection.');
+                }
+            } catch (error) {
+                console.error('Network error fetching levels:', error);
+                displayError('surveyDetailsStatus', 'Network error fetching levels.');
+            }
+        }
+
+        levels.forEach(lvl => {
+            const option = document.createElement('option');
+            option.value = lvl.value;
+            option.textContent = lvl.name;
+            levelSelect.appendChild(option);
+        });
+        levelSelect.disabled = false; // Enable level select
+    }
+
+
+    // Function to handle submitting the survey
+    async function submitSurvey() {
+        const surveyName = document.getElementById('surveyName').value.trim();
+        const surveyDescription = document.getElementById('surveyDescription').value.trim(); // NEW
+        const surveyDuration = document.getElementById('surveyDuration').value.trim(); // NEW
+        const responderLink = document.getElementById('responderLink').value.trim();
+        const rewardPerResponse = document.getElementById('rewardPerResponse').value.trim();
+        const desiredResponses = document.getElementById('desiredResponses').value.trim();
+        const surveyDetailsStatusDiv = document.getElementById('surveyDetailsStatus');
+
+        if (!surveyName || !surveyDescription || !surveyDuration || !responderLink || !rewardPerResponse || !desiredResponses) {
+            displayError('surveyDetailsStatus', 'Please fill in all survey details.');
+            return;
+        }
+
+        if (isNaN(surveyDuration) || parseFloat(surveyDuration) <= 0) {
+            displayError('surveyDetailsStatus', 'Please enter a valid positive duration in minutes.');
+            return;
+        }
+
+        try {
+            new URL(responderLink);
+        } catch (e) {
+            displayError('surveyDetailsStatus', 'Please enter a valid Google Form Responder URL.');
+            return;
+        }
+
+        if (!verifiedSheetLink) {
+             displayError('surveyDetailsStatus', 'Sheet link not verified. Please go back to setup form first.');
+             return;
+        }
+
+        let filters = [];
+        const applyFilter = applyFilterToggle.checked;
+        let numFilters = 0;
+
+        if (applyFilter) {
+            const filterItems = document.querySelectorAll('#filtersList .filter-item');
+            if (filterItems.length === 0) {
+                displayError('surveyDetailsStatus', 'Please add at least one filter or uncheck "Apply Filters".');
+                return;
+            }
+            numFilters = filterItems.length;
+
+            let allFiltersValid = true;
+            filterItems.forEach(item => {
+                const institutionId = item.querySelector('.institution-select').value;
+                const gender = item.querySelector('.gender-select').value;
+                const role = item.querySelector('.role-select').value;
+                const filterBy = item.querySelector('.filter-by-select').value;
+                const optionId = item.querySelector('.option-select').value;
+                const level = item.querySelector('.level-select').value;
+
+                // Basic validation for each filter item
+                if (!institutionId || !gender || !role || !filterBy || !optionId || !level) {
+                    displayError('surveyDetailsStatus', 'Please complete all fields for each filter.');
+                    allFiltersValid = false;
+                    return; // Exit this forEach iteration
+                }
+
+                filters.push({
+                    institution_id: institutionId,
+                    gender: gender,
+                    role: role,
+                    filter_by: filterBy,
+                    option_id: optionId, // This could be college_id, department_id, or course_id
+                    level: level
+                });
+            });
+
+            if (!allFiltersValid) {
+                return; // Stop submission if any filter is incomplete
+            }
+        }
+
+        // Calculate total cost (simplified for simulation)
+        const costOfSurvey = parseFloat(rewardPerResponse) * parseInt(desiredResponses);
+        const serviceFee = (costOfSurvey * SERVICE_FEE_PERCENTAGE)+(numFilters * FILTER_BASE_COST);
+        const totalCost = costOfSurvey + serviceFee;
+
+        document.getElementById('costOfSurvey').textContent = costOfSurvey.toFixed(2);
+        document.getElementById('serviceFee').textContent = serviceFee.toFixed(2);
+        document.getElementById('paymentAmount').textContent = totalCost.toFixed(2);
+        document.getElementById('paymentOverlay').style.display = 'flex'; // Show payment overlay
+
+        // The actual submission will happen after simulated payment success
+    }
+
+    // Payment simulation functions
+    function simulatePaymentSuccess() {
+        document.getElementById('paymentOverlay').style.display = 'none'; // Hide payment overlay
+        // Proceed with survey submission to backend
+        sendSurveyDataToBackend();
+    }
+
+    function cancelPayment() {
+        document.getElementById('paymentOverlay').style.display = 'none'; // Hide payment overlay
+        displayError('surveyDetailsStatus', 'Payment cancelled. Survey not submitted.');
+    }
+
+    async function sendSurveyDataToBackend() {
+        const surveyName = document.getElementById('surveyName').value.trim();
+        const surveyDescription = document.getElementById('surveyDescription').value.trim(); // NEW
+        const surveyDuration = parseFloat(document.getElementById('surveyDuration').value.trim()); // NEW
+        const responderLink = document.getElementById('responderLink').value.trim();
+        const rewardPerResponse = parseFloat(document.getElementById('rewardPerResponse').value.trim());
+        const desiredResponses = parseInt(document.getElementById('desiredResponses').value.trim());
+
+        let filters = [];
+        const applyFilter = applyFilterToggle.checked;
+
+        if (applyFilter) {
+            const filterItems = document.querySelectorAll('#filtersList .filter-item');
+            filterItems.forEach(item => {
+                const institutionId = item.querySelector('.institution-select').value;
+                const gender = item.querySelector('.gender-select').value;
+                const role = item.querySelector('.role-select').value;
+                const filterBy = item.querySelector('.filter-by-select').value;
+                const optionId = item.querySelector('.option-select').value;
+                const level = item.querySelector('.level-select').value;
+
+                filters.push({
+                    institution_id: parseInt(institutionId), // Ensure IDs are numbers
+                    gender: gender,
+                    role: role,
+                    filter_by: filterBy,
+                    option_id: parseInt(optionId), // Ensure IDs are numbers
+                    level: level
+                });
+            });
+        }
+
+        const surveyData = {
+            tg_id: tg_id,
+            name: surveyName,
+            description: surveyDescription, // NEW
+            duration: surveyDuration, // NEW
+            responder_link: responderLink,
+            sheet_link: verifiedSheetLink,
+            reward_per_response: rewardPerResponse,
+            desired_responses: desiredResponses,
+            apply_filter: applyFilter,
+            filters: filters
+        };
+
+        displayMessage('surveyDetailsStatus', 'Submitting survey...'); // Show loading message
+
+        try {
+            const res = await fetch(`${BACKEND_URL}/api/upload_survey`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(surveyData)
+            });
+
+            const result = await res.json();
+
+            if (res.ok) {
+                document.getElementById('successOverlay').style.display = 'flex';
+            } else {
+                displayError('surveyDetailsStatus', result.message || 'Failed to upload survey.');
+                document.getElementById('paymentOverlay').style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Error uploading survey:', error);
+            displayError('surveyDetailsStatus', 'Network error or server unreachable during survey upload.');
+        }
+    }
+
+    // Initial fetch of institutions when the page loads
+    document.addEventListener('DOMContentLoaded', fetchInstitutions);
+
+  </script>
+</body>
+</html>

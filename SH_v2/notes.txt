@@ -1,0 +1,8 @@
+files with ngrok:
+script.js
+survey_details.html
+bot.py
+form_Setup.html
+register.html
+
+C:\Users\DELL\OneDrive\Desktop\KEEPING desktop\survey_hustler\surveyhustler-api-8baa5c0c1239.json

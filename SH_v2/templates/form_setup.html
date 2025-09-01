@@ -1,0 +1,111 @@
+<!-- templates/form_setup.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Setup Google Form - SurveyHustler</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <style>
+    body { padding: 2rem; }
+    .status { font-weight: bold; margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>📋 Google Form Setup Instructions</h2>
+    <ol>
+      <li>Make sure your form is created on <a href="https://forms.google.com" target="_blank">Google Forms</a>.</li>
+      <li>In your settings, under "responses", set "Collect email addresses" to responder input, and ensure you limit to 1 response</li>
+      <li>link your form to a sheet.</li>
+      <li>In your newly create link, Add this email as an Editor: <code>surveyhustler-access-bot@surveyhustler-api.iam.gserviceaccount.com</code></li>
+      <li>Once done, paste your sheet link below and click “Next”.</li>
+    </ol>
+
+    <div class="mb-3 mt-4">
+      <label for="sheetLink" class="form-label">Paste Google Sheet Link</label>
+      <input type="url" class="form-control" id="sheetLink" placeholder="https://docs.google.com/spreadsheets/d..." required>
+    </div>
+
+    <button class="btn btn-success" onclick="verifySheetLink()">Next</button>
+
+    <div id="status" class="status"></div>
+  </div>
+
+  <script>
+    const BACKEND_URL = 'https://2dd3d5aa0786.ngrok-free.app';
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const tg_id = urlParams.get("tg_id");
+
+    function displayMessage(elementId, message) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.textContent = message;
+            element.style.color = 'green'; // Or your preferred success color
+        }
+    }
+
+    function displayError(elementId, message) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.textContent = message;
+            element.style.color = 'red'; // Or your preferred error color
+        }
+    }
+
+    async function verifySheetLink() {
+      const sheetLinkInput = document.getElementById('sheetLink');
+      const sheetLink = sheetLinkInput.value.trim();
+      const statusDiv = document.getElementById("status");
+
+      if (!sheetLink) {
+            displayError('statusDiv', 'Please enter a Google Sheet link.');
+            return;
+        }
+
+      // Basic URL validation
+      try {
+          const url = new URL(sheetLink);
+          if (url.hostname !== 'docs.google.com' || !url.pathname.includes('/spreadsheets/d/')) {
+              displayError('status', 'Please enter a valid Google Sheets link.');
+              return;
+          }
+      } catch (e) {
+          displayError('status', 'Please enter a valid URL.');
+          return;
+      }
+
+      statusDiv.textContent = "🔄 Verifying link...";
+      statusDiv.style.color = "black";
+
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/verify_sheet_access`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sheet_link: sheetLink })
+        });
+
+        const result = await res.json();
+
+        if (res.ok) {
+          // The backend returns {'verified': true}, not a message.
+          displayMessage('status', '✅ Link verified successfully!');
+
+          // Save form link in sessionStorage
+          sessionStorage.setItem('sheet_link', sheetLink);
+          setTimeout(() => {
+            window.location.href = `/survey_details?tg_id=${tg_id}`;
+          }, 1000);
+        } else {
+            // Correct element ID and fallback message
+            displayError('status', result.reason || result.message || 'Link verification failed.');
+        }
+      } catch (err) {
+        console.error('Error verifying sheet link:', err);
+        displayError('status', 'Network error or server unreachable.')
+      }
+    }
+  </script>
+</body>
+</html>

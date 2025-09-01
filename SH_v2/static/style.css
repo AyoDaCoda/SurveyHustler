@@ -1,0 +1,58 @@
+body {
+  font-family: Arial;
+  background: #fdf8f2;
+  color: #4d392c;
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+}
+.form-wrapper {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 400px;
+}
+input, select, button {
+  display: block;
+  width: 100%;
+  margin: 10px 0;
+  padding: 10px;
+  font-size: 1rem;
+}
+button, .btn {
+  background-color: #c59a5f;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+.hidden {
+  display: none;
+}
+
+.error-message {
+  color: red;
+  font-weight: bold;
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+
+.info-message {
+  color: green;
+  font-weight: bold;
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+
+.resend-link {
+    cursor: default; /* Default cursor when inactive */
+    color: grey;      /* Grey color when inactive */
+    text-decoration: none; /* No underline by default */
+    transition: color 0.3s ease; /* Smooth transition for color change */
+}
+
+.resend-link.active {
+    cursor: pointer;  /* Pointer cursor when active */
+    color: gold;      /* Gold color when active */
+    text-decoration: underline; /* Underline when active */
+}

@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+.build/
+
+# Environment & secrets
+.env
+*.env
+*.key
+*.pem
+
+# OS / Editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Logs
+*.log
+
+# Node (if any frontend assets)
+node_modules/
+dist/
